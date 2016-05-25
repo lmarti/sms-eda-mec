@@ -11,6 +11,8 @@ For further information and results see: [http://lmarti.com/smsedamec-cec2016](h
 
 ## Papers
 
+The following papers have to do with the algorithm: 
+
 * Luis Martí, Harold D. de Mello Jr., Nayat Sanchez-Pi and Marley Vellasco (2016) SMS-EDA-MEC: Extending Copula-based EDAs to Multi-Objective Optimization, 2016 IEEE Conference on Evolutionary Computation (CEC'2016), part of 2016 IEEE World Congress on Computational Intelligence (WCCI'2016), Vancouver, Canada, *in press*.
 
 ## Usage
@@ -44,9 +46,9 @@ For the `paretofront` function run:
 
 ## Credits
 
-Parts of SMS-EDA-MEC code is based on the Matlab implementations of SMS-EMOA and OCD by Fabian Kretzschmar and Tobias Wagner. See [https://ls11-www.cs.uni-dortmund.de/rudolph/hypervolume/start](https://ls11-www.cs.uni-dortmund.de/rudolph/hypervolume/start) for further details.
+Parts of SMS-EDA-MEC code is based on the Matlab implementation of SMS-EMOA and OCD by Fabian Kretzschmar and Tobias Wagner. See [https://ls11-www.cs.uni-dortmund.de/rudolph/hypervolume/start](https://ls11-www.cs.uni-dortmund.de/rudolph/hypervolume/start) for further details.
 
-* WFG implementation (`wfg.m`) by Robin Purshouse.
-* Hypervolume implementation by Thomas Vo&szlig; (Ruhr-Universit&auml;t Bochum)
+* WFG problems implementation (`wfg.m`) by Robin Purshouse (University of Sheffield).
+* Hypervolume implementation by Thomas Vo&szlig; (Ruhr-Universit&auml;t Bochum) as part of the [Shark](http://image.diku.dk/shark/) library.
 * `paretofront.m` by Yi Cao (Cranfield University).
-* For other cases check the function documentation for author acknowledgements.
+* For other cases, check the function documentation for author acknowledgements.
