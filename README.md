@@ -1,5 +1,5 @@
 # `sms-eda-mec`
-### Matlab source code for the SMS-EDA-MEC multi-objective estimation of distribution algorithm
+#### Matlab reference implementation for the S-Metric Selection Estimation of Distribution Algorithm based on Multivariate Extension of Copulas (SMS-EDA-MEC)
 
 ## Summary
 
@@ -11,7 +11,7 @@ For further information and results see: [http://lmarti.com/sms-eda-mec](http://
 
 ## Papers
 
-* Luis Martí, Harold D. de Mello Jr., Nayat Sanchez-Pi and Marley Vellasco (2016) SMS-EDA-MEC: Extending Copula-based EDAs to Multi-Objective Optimization, 2016 IEEE Conference on Evolutionary Computation (CEC'2016), part of 2016 IEEE World Congress on Computational Intelligence (WCCI'2016), Vancouver, Canada.
+* Luis Martí, Harold D. de Mello Jr., Nayat Sanchez-Pi and Marley Vellasco (2016) SMS-EDA-MEC: Extending Copula-based EDAs to Multi-Objective Optimization, 2016 IEEE Conference on Evolutionary Computation (CEC'2016), part of 2016 IEEE World Congress on Computational Intelligence (WCCI'2016), Vancouver, Canada, *in press*.
 
 ## Usage
 
@@ -21,10 +21,32 @@ The function `multi_mec_eda_clayton.m` is the main entry point. Try running in m
 ```
 to get the parameters details.
 
-Problems currently implemented are WFG1-9, Dent , GSP and OKA2.
+For example, runnning 
+```
+>> multi_mec_eda_clayton('WFG1')
+```
+will run SMS-EDA-MEC on WFG1 with default parameters.
 
-**Note:** You will need to compile `hv.cpp` and `paretofront.c` within matlab. Refer to the `matlab\hv.readme` and `matlab\paretofront.readme` files for instructions.
+Problems currently implemented are WFG1-9, Dent, GSP and OKA2.
+
+**Note:** You will need to compile `hv.cpp` and `paretofront.c` within Matlab.
+
+For compiling the hypervolume run:
+```bash
+>> mex -I. hv.cpp Hypervolume.cpp
+``` 
+
+For the `paretofront` function run:
+```bash
+>> mex paretofront.c
+```
+
 
 ## Credits
 
-Parts of the code is based on the Matlab implementations of SMS-EMOA and OCD by Fabian Kretzschmar and Tobias Wagner. See [https://ls11-www.cs.uni-dortmund.de/rudolph/hypervolume/start](https://ls11-www.cs.uni-dortmund.de/rudolph/hypervolume/start) for further details.
+Parts of SMS-EDA-MEC code is based on the Matlab implementations of SMS-EMOA and OCD by Fabian Kretzschmar and Tobias Wagner. See [https://ls11-www.cs.uni-dortmund.de/rudolph/hypervolume/start](https://ls11-www.cs.uni-dortmund.de/rudolph/hypervolume/start) for further details.
+
+* WFG implementation (`wfg.m`) by Robin Purshouse.
+* Hypervolume implementation by Thomas Vo&szlig; (Ruhr-Universit&auml;t Bochum)
+* `paretofront.m` by Yi Cao (Cranfield University).
+* For other cases check the function documentation for author acknowledgements.

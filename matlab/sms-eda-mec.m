@@ -1,21 +1,37 @@
 function [final_pareto_front, ...   % objectives
-    final_pareto_set, ... % parameters
-    out] = multi_mec_eda_clayton(problem, inopts)
-% Faz a otimizacao utilizando EDA baseado em copulas
+          final_pareto_set ...      % parameters
+         ] = sms_eda_mec(problem, inopts)
+% Reference implementation for the S-Metric Selection Estimation of Distribution Algorithm based on
+% Multivariate Extension of Copulas (SMS-EDA-MEC).
+%
+% Luis Martí, Harold D. de Mello Jr., Nayat Sanchez-Pi and Marley Vellasco (2016)
+% SMS-EDA-MEC: Extending Copula-based EDAs to Multi-Objective Optimization,
+% 2016 IEEE Conference on Evolutionary Computation (CEC'2016), part of the
+% 2016 IEEE World Congress on Computational Intelligence (WCCI'2016),
+% Vancouver, Canada, in press.
+%
+% sms_eda_mec(problem_name, options):
+%    runs SMS-EDA-MEC on problem_name, options not especified will use the default values.
+% sms_eda_mec():
+%    prints the options and their default values.
+%
+% Check https://github.com/lmarti/sms-eda-mec for updates.
 
 % ----------- Set Defaults for Options ---------------------------------
 % options: general - these are evaluated once
-defopts.pop_size          = '100           % size of the population';
-defopts.maxEval           = '10000        % maximum number of evaluations';
-defopts.OCD_VarLimit      = '1e-4          % variance limit of OCD';
-defopts.OCD_nPreGen       = '10            % number of preceding generations used in OCD';
-defopts.nPFevalHV         = 'inf           % evaluate 1st to this number paretoFronts with HV';
-defopts.outputGen         = 'inf           % rate of writing output files';
-defopts.refPoint          = '0             % refPoint for HV; if 0, max(obj)+1 is used';
-defopts.n_rebels          = '10            % number of rebels';
-defopts.copula_type       = 'Harold        % copula types {Gaussian|t|Clayton|Frank|Gumbel|Harold}';
-defopts.do_restarting     = 'true          % use restarting?';
-defopts.base_kl           = '0.15           % whats kl?';
+defopts.pop_size           = '100           % size of the population';
+defopts.maxEval            = '10000         % maximum number of evaluations';
+defopts.OCD_VarLimit       = '1e-4          % variance limit of OCD';
+defopts.OCD_nPreGen        = '10            % number of preceding generations used in OCD';
+defopts.nPFevalHV          = 'inf           % evaluate 1st to this number paretoFronts with HV';
+defopts.outputGen          = 'inf           % rate of writing output files';
+defopts.refPoint           = '0             % refPoint for HV; if 0, max(obj)+1 is used';
+defopts.n_precursors       = '10            % number of precursors';
+defopts.copula_type        = 'EDAMEC        % copula types {Gaussian|t|Clayton|Frank|Gumbel|EDAMEC}';
+defopts.do_restarting      = 'true          % use restarting?';
+defopts.restart_gap        = 'true          % number of iterations to wait between restarts';
+defopts.restarting_percent = '0.9           % enable restarting only in the part of the evolution';
+defopts.base_kl            = '0.15          % whats kl?';
 
 % ---------------------- Handling Input Parameters ----------------------
 
@@ -78,25 +94,17 @@ refPoint = myeval(opts.refPoint);
 base_kl = myeval(opts.base_kl);
 
 copula_type = myeval(opts.copula_type);
+
 do_restarting = myeval(opts.do_restarting);
+restart_gap = myeval(opts.restart_gap);
+restarting_percent = myeval(opts.restarting_percent);
 
-%if ~strcmp(dist,'normal') && ~strcmp(dist,'empirical')
-%    fprintf('Error: marginal distributions must be either normal or empirical.');
-%    return;
-%end
 
-%if md == 1
-%    dist = {'normal'};
-%elseif md == 2
-%    dist = {'empirical'};
-%end
-
-n_rebels = myeval(opts.n_rebels);
+n_precursors = myeval(opts.n_precursors);
 use_rebels = true;
 
 param_gen = 1;                      % percentual de novos individuos
 gap =  floor(pop_size * param_gen);        % num de novos individuos
-%v = gap;                           % numero de graus de liberdade da distribuicao
 
 gg = [];
 
@@ -121,16 +129,16 @@ theta = NaN;
 
 while count_eval < max_eval
     iteration = iteration + 1;
-    
+
     if mod(iteration, 10) == 0
         fprintf('Iteration: %d; evals: %d.\n', iteration, count_eval);
         fprintf('%d percent calculated.\n', floor((count_eval./(max_eval-1))*100));
     end;
 
-    if do_restarting
+    if do_restarting && count_eval/max_eval <= restarting_percent
         ranks = paretoRank(pop_obj);
         %
-        terminationCriterion = false;
+        stagnation_criterion = false;
 
         if (iteration > OCD_nPreGen+1)
             for i = 2:OCD_nPreGen+1
@@ -155,7 +163,7 @@ while count_eval < max_eval
         end
 
         if exist('OCD_termCrit', 'var') && any(OCD_termCrit)
-            terminationCriterion = any(OCD_termCrit);
+            stagnation_criterion = any(OCD_termCrit);
             if OCD_termCrit(1)
                 fprintf('OCD detected convergence due to the variance test\n');
             else
@@ -163,86 +171,80 @@ while count_eval < max_eval
             end
         end
 
-        % avoid continuous restarting and restarting in the last 10% of the
+        % avoid continuous restarting and restarting in the final part of the
         % evolution
-        
-        max_pop = max(pop);
-        min_pop = min(pop);
-        
-        restart_flag = terminationCriterion && iteration - restart_iteration > 10 && count_eval/max_eval <= 0.9;
 
         % is restaring needed?
-        if restart_flag || norm(max_pop-min_pop) < 10^-4
-            % gg = [gg fits(1)];
+        if stagnation_criterion && iteration - restart_iteration > restart_gap
             fprintf('Restarting population...\n');
+
+            max_pop = max(pop);
+            min_pop = min(pop);
+
             restart_count = restart_count + 1;
             restart_iteration = iteration;
 
-            pop_restarted  = generate_random_population(pop_size, num_vars, min_pop, max_pop);
-            pop_full_domain = generate_random_population(pop_size, num_vars, rng_min, rng_max);
+            pop_local_restarted  = generate_random_population(pop_size, num_vars, min_pop, max_pop);
+            pop_global_restarted = generate_random_population(pop_size, num_vars, rng_min, rng_max);
 
-            pop(1:floor(pop_size*kl),:) = pop_restarted(1:floor(pop_size*kl),:);
-            pop(end-floor(pop_size*kl):end,:) = pop_full_domain(end-floor(pop_size*kl):end,:);
+            pop(1:floor(pop_size*kl),:) = pop_local_restarted(1:floor(pop_size*kl),:);
+            pop(end-floor(pop_size*kl):end,:) = pop_global_restarted(end-floor(pop_size*kl):end,:);
 
-            %if kl < 0.9834 % Harold?
-            %    pop(1+round(pop_size*kl):end,:) = pop_full_domain(1+round(pop_size*kl):end,:);
-            %end
-
-            if (restart_count>1) %&& (gg(end)-gg(end-1) == 0)
-                %gama = abs(gg(end-1)-gg(end))/abs(gg(end-1));
+            if restart_count > 1
                 kl = kl/2;
                 if kl < 0.05
                     kl = base_kl;
                 end
             end
+
             pop_obj = problem_func(pop);
             count_eval = count_eval + size(pop_obj,1);
         end
     end
     % -- end of restart
-    
+
     % -- computing copula and new individuals
     offspring = generate_copula_indivuduals(copula_type, pop, gap);
     offspring = enforce_domain(offspring, rng_min, rng_max);
-    
+
     offspring_obj = problem_func(offspring);
-    
+
     count_eval = count_eval + gap;
-    
-    if use_rebels
-        rebel_pop = compute_rebels(pop, pop_obj, n_rebels, nPFevalHV, refPoint);
+
+    if n_precursors > 0
+        rebel_pop = compute_rebels(pop, pop_obj, n_precursors, nPFevalHV, refPoint);
         rebel_pop_obj = problem_func(rebel_pop);
-        count_eval = count_eval + n_rebels;
+        count_eval = count_eval + n_precursors;
     else
         rebel_pop = [];
         rebel_pop_obj = [];
     end
-    
-    % plots for assessing diversity
-    if mod(iteration,1) == 0 || iteration == 1 || restart_iteration == iteration
-        if num_vars == 2
-            subplot(2,1,1);
-            hold off;
-            plot(pop(:,1),pop(:,2), 'bo');
-            hold on;
-            plot(offspring(:,1),offspring(:,2), 'r.');
-            plot(rebel_pop(:,1), rebel_pop(:,2), 'g*');
-            title(strcat('Search space - parents blue; offspring red - t=', num2str(iteration)));
-            subplot(2,1,2);
-        end
-        hold off;
-        plot(pop_obj(:,1), pop_obj(:,2), 'bo');
-        hold on;
-        plot(offspring_obj(:,1), offspring_obj(:,2), 'r.');
-        plot(rebel_pop_obj(:,1), rebel_pop_obj(:,2), 'g*');
-        title(strcat('Objectives -  parents blue; offspring red - t=', num2str(iteration)));
-        drawnow;
-    end
-    
+
+    %% plots for assessing diversity
+    % if mod(iteration,1) == 0 || iteration == 1 || restart_iteration == iteration
+    %    if num_vars == 2
+    %        subplot(2,1,1);
+    %        hold off;
+    %        plot(pop(:,1),pop(:,2), 'bo');
+    %        hold on;
+    %        plot(offspring(:,1),offspring(:,2), 'r.');
+    %        plot(rebel_pop(:,1), rebel_pop(:,2), 'g*');
+    %        title(strcat('Search space - parents blue; offspring red - t=', num2str(iteration)));
+    %        subplot(2,1,2);
+    %    end
+    %    hold off;
+    %    plot(pop_obj(:,1), pop_obj(:,2), 'bo');
+    %    hold on;
+    %    plot(offspring_obj(:,1), offspring_obj(:,2), 'r.');
+    %    plot(rebel_pop_obj(:,1), rebel_pop_obj(:,2), 'g*');
+    %    title(strcat('Objectives -  parents blue; offspring red - t=', num2str(iteration)));
+    %    drawnow;
+    % end
+
     total_pop = [pop; offspring];
     total_pop_obj = [pop_obj; offspring_obj];
-    
-    while size(total_pop,1) > pop_size - n_rebels
+
+    while size(total_pop,1) > pop_size - n_precursors
         ranks = paretoRank(total_pop_obj);
         nPV = max(ranks);
         elementInd = select_element_to_remove(total_pop, total_pop_obj, pop_size, num_objs, ...
@@ -250,12 +252,12 @@ while count_eval < max_eval
         total_pop(elementInd,:) = [];
         total_pop_obj(elementInd,:) = [];
     end
-    
+
     total_pop = [total_pop; rebel_pop];
     total_pop_obj = [total_pop_obj;rebel_pop_obj];
-    
+
     perm = randperm(pop_size);
-    
+
     pop = total_pop(perm,:);
     pop_obj = total_pop_obj(perm,:);
 end
@@ -263,7 +265,6 @@ end
 final_front_mask =  paretofront(pop_obj);
 final_pareto_front = pop_obj; %(final_front_mask,:);
 final_pareto_set = pop; %(final_front_mask,:);
-out = 'Bling!';
 hold off;
 end
 
@@ -285,7 +286,7 @@ for col = 1:cols
 end
 end
 
-function rebel_pop = compute_rebels(pop, pop_obj, n_rebels, nPFevalHV, refPoint)
+function rebel_pop = compute_rebels(pop, pop_obj, n_precursors, nPFevalHV, refPoint)
 % Pergunta para Harold, ? poss?vel seleccionar os mais "rebeldes"? ? isso o
 % que estamos fazendo?
 %
@@ -314,7 +315,7 @@ while size(best_subset,1) > floor(0.3 * size(pop,1))
         num_vars, nPV, ranks, nPFevalHV, refPoint);
     best_subset(elementInd,:) = [];
     best_subset_obj(elementInd,:) = [];
-end    
+end
 
 best_min = min(best_subset);
 best_max = max(best_subset);
@@ -346,11 +347,11 @@ rebel_cdf_inversa = flipud(y_inv);
 % rebel_cdf_direta = rebel_cdf_direta(perm, :);
 % rebel_cdf_inversa = rebel_cdf_inversa(perm, :);
 
-part_size = floor(n_rebels/2);
+part_size = floor(n_precursors/2);
 
 rebel_pop = [rebel_cdf_direta(1:part_size,:); rebel_cdf_inversa(1:part_size,:)];
 
-% rebel_pop = rebel_cdf_inversa(1:n_rebels,:);
+% rebel_pop = rebel_cdf_inversa(1:n_precursors,:);
 
 rebel_pop = scale_up(rebel_pop, best_min, best_max);
 end
