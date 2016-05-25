@@ -7,7 +7,7 @@ It can be argued that  in order to produce a substantial improvement in multi-ob
 
 In this work we introduce the S-Metric Selection Estimation of Distribution Algorithm based on Multivariate Extension of Copulas (SMS-EDA-MEC). SMS-EDA-MEC was devised with the intention of dealing with those issues in mind. It builds the population model relying on the comprehensive Clayton's copula and incorporates methods for automatic population restarting and for priming precursor individuals. The experimental studies presented show that SMS-EDA-MEC yields better results than current and 'traditional' approaches. 
 
-For further information and results see: [http://lmarti.com/sms-eda-mec](http://lmarti.com/sms-eda-mec).
+For further information and results see: [http://lmarti.com/smsedamec-cec2016](http://lmarti.com/smsedamec-cec2016).
 
 ## Papers
 
