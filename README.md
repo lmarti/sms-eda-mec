@@ -17,32 +17,33 @@ The following papers have to do with the algorithm:
 
 ## Usage
 
-The function `multi_mec_eda_clayton.m` is the main entry point. Try running in matlab
+The function `sms_eda_mec.m` is the main entry point. Try running in matlab
 ```
->> help multi_mec_eda_clayton
+>> help sms_eda_mec
 ```
 to get the parameters details.
 
 For example, runnning 
 ```
->> multi_mec_eda_clayton('WFG1')
+>> sms_eda_mec('WFG1')
 ```
 will run SMS-EDA-MEC on WFG1 with default parameters.
 
 Problems currently implemented are WFG1-9, Dent, GSP and OKA2.
 
-**Note:** You will need to compile `hv.cpp` and `paretofront.c` within Matlab.
+## Requierements
+
+You will need to compile `hv.cpp` and `paretofront.c` (distrubuted along) within Matlab.
 
 For compiling the hypervolume run:
 ```bash
 >> mex -I. hv.cpp Hypervolume.cpp
 ``` 
 
-For the `paretofront` function run:
+For the `paretofront.c` function run:
 ```bash
 >> mex paretofront.c
 ```
-
 
 ## Credits
 
