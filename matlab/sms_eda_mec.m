@@ -20,6 +20,7 @@ function [final_pareto_front, ...   % objectives
 % ----------- Set Defaults for Options ---------------------------------
 % options: general - these are evaluated once
 defopts.pop_size           = '100           % size of the population';
+defopts.num_offspring      = '100           % number of offspring individuals to generate';
 defopts.maxEval            = '10000         % maximum number of evaluations';
 defopts.OCD_VarLimit       = '1e-4          % variance limit of OCD';
 defopts.OCD_nPreGen        = '10            % number of preceding generations used in OCD';
@@ -99,14 +100,9 @@ do_restarting = myeval(opts.do_restarting);
 restart_gap = myeval(opts.restart_gap);
 restarting_percent = myeval(opts.restarting_percent);
 
-
 n_precursors = myeval(opts.n_precursors);
-use_rebels = true;
 
-param_gen = 1;                      % percentual de novos individuos
-gap =  floor(pop_size * param_gen);        % num de novos individuos
-
-gg = [];
+num_offspring = myeval(opts.num_offspring);
 
 % initial population - every row an individual
 pop = generate_random_population(pop_size, num_vars, rng_min, rng_max);   % dist uniforme
@@ -204,12 +200,12 @@ while count_eval < max_eval
     % -- end of restart
 
     % -- computing copula and new individuals
-    offspring = generate_copula_indivuduals(copula_type, pop, gap);
+    offspring = generate_copula_indivuduals(copula_type, pop, num_offspring);
     offspring = enforce_domain(offspring, rng_min, rng_max);
 
     offspring_obj = problem_func(offspring);
 
-    count_eval = count_eval + gap;
+    count_eval = count_eval + num_offspring;
 
     if n_precursors > 0
         rebel_pop = compute_rebels(pop, pop_obj, n_precursors, nPFevalHV, refPoint);
@@ -220,7 +216,7 @@ while count_eval < max_eval
         rebel_pop_obj = [];
     end
 
-    %% plots for assessing diversity
+    %% -- plots for assessing diversity
     % if mod(iteration,1) == 0 || iteration == 1 || restart_iteration == iteration
     %    if num_vars == 2
     %        subplot(2,1,1);
@@ -263,8 +259,8 @@ while count_eval < max_eval
 end
 
 final_front_mask =  paretofront(pop_obj);
-final_pareto_front = pop_obj; %(final_front_mask,:);
-final_pareto_set = pop; %(final_front_mask,:);
+final_pareto_front = pop_obj(final_front_mask,:);
+final_pareto_set = pop(final_front_mask,:);
 hold off;
 end
 
@@ -287,9 +283,6 @@ end
 end
 
 function rebel_pop = compute_rebels(pop, pop_obj, n_precursors, nPFevalHV, refPoint)
-% Pergunta para Harold, ? poss?vel seleccionar os mais "rebeldes"? ? isso o
-% que estamos fazendo?
-%
 global theta
 [pop_size, num_vars] = size(pop);
 num_objs = size(pop_obj,2);
@@ -321,9 +314,6 @@ best_min = min(best_subset);
 best_max = max(best_subset);
 
 best_subset = scale_down(best_subset, best_min, best_max);
-
-%sorted_pop = pop(paretoRank(pop_obj),:);
-%best_subset = sorted_pop(1:floor(0.3 * size(sorted_pop,1)),:);
 
 [idd, idx] = sort(clayton_cop(best_subset, size(best_subset,1), theta)); % nao funciona
 u2 = 1-idd;
@@ -378,15 +368,12 @@ u1 = clayton_cop(pop, num_offspring, theta);
 marg = 1;
 
 offspring = zeros(num_offspring, num_vars);
-%Calculo dos novos individuos
+%C Computing new individuals
 if marg == 1
     % Normal Marginal Distributions
     upperx = max(pop);
     lowerx = min(pop);
     y = norminv(u1,0,1);
-    %y(y<=-3)=-3;
-    %y(y>=3)=3;
-    %y = y./6 + 0.5;
     for k= 1:num_offspring
         offspring(k,:) = y(k,:).*(upperx(k)-lowerx(k))+lowerx(k);
     end
