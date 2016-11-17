@@ -38,7 +38,7 @@ defopts.base_kl            = '0.15          % whats kl?';
 
 if nargin < 1 || isequal(problem, 'defaults') % pass default options
     if nargin < 1
-        disp('Default options returned (type "help multi_mec_eda_clayton" for help).');
+        disp('Default options returned (type "help sms_eda_mec" for help).');
     end
     final_pareto_front = defopts;
     if nargin > 1 % supplement second argument with default options
@@ -346,7 +346,7 @@ rebel_pop = [rebel_cdf_direta(1:part_size,:); rebel_cdf_inversa(1:part_size,:)];
 rebel_pop = scale_up(rebel_pop, best_min, best_max);
 end
 
-function offspring=copula_harold(pop, num_offspring)
+function offspring=copula_edamec(pop, num_offspring)
 global momentum theta
 num_vars = size(pop,2);
 
@@ -385,6 +385,19 @@ else
 end
 end
 
+function [w] = clayton_cop(data, np, theta)
+%% samples the Clayton's copula
+w= zeros(np,size(data,2));
+w(:,1)= rand(np,1);
+
+for j=2:size(data,2)
+  for i=1:np
+    t=rand;
+    w(i,j)= ((sum(w(i,1:j-1).^-theta)-j+2).*(t.^(theta/(theta*(1-j)-1))-1) +1).^(-1/theta);
+  end
+end
+end
+
 function offspring=generate_copula_indivuduals(copula_type, pop, num_offspring)
 epsilon = 0.0000000001;
 pop_min = min(pop) - epsilon;
@@ -399,8 +412,8 @@ elseif strcmp(copula_type, 't')
 elseif strcmp(copula_type, 'Clayton') || strcmp(copula_type, 'Frank') || strcmp(copula_type, 'Gumbel')
     param_hat = copulafit(copula_type, scaled, 'Alpha', 0.01);
     offspring = copularnd(copula_type, param_hat, num_offspring);
-elseif strcmp(copula_type, 'Harold')
-    offspring = copula_harold(scaled, num_offspring);
+elseif strcmp(copula_type, 'EDAMEC')
+    offspring = copula_edamec(scaled, num_offspring);
 end
 
 offspring = scale_up(offspring, pop_min, pop_max);
