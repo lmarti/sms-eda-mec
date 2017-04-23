@@ -4,4 +4,4 @@ rngMin = [-pi -5 -5];
 rngMax = [pi 5 5];
 isInt = zeros(1,nVar);
 nObj = 2;
-algoCall = 'OKA2';
+algoCall = @(x) OKA2(x);
