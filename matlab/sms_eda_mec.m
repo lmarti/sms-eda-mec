@@ -4,11 +4,11 @@ function [final_pareto_front, ...   % objectives
 % Reference implementation for the S-Metric Selection Estimation of Distribution Algorithm based on
 % Multivariate Extension of Copulas (SMS-EDA-MEC).
 %
-% Luis Martí, Harold D. de Mello Jr., Nayat Sanchez-Pi and Marley Vellasco (2016)
+% Luis Marti, Harold D. de Mello Jr., Nayat Sanchez-Pi and Marley Vellasco (2016)
 % SMS-EDA-MEC: Extending Copula-based EDAs to Multi-Objective Optimization,
 % 2016 IEEE Conference on Evolutionary Computation (CEC'2016), part of the
 % 2016 IEEE World Congress on Computational Intelligence (WCCI'2016),
-% Vancouver, Canada, in press.
+% Vancouver, Canada, pp. 3726--3733. doi: 10.1109/CEC.2016.7744261.
 %
 % sms_eda_mec(problem_name, options):
 %    runs SMS-EDA-MEC on problem_name, options not especified will use the default values.
@@ -32,7 +32,8 @@ defopts.copula_type        = 'EDAMEC        % copula types {Gaussian|t|Clayton|F
 defopts.do_restarting      = 'true          % use restarting?';
 defopts.restart_gap        = 'true          % number of iterations to wait between restarts';
 defopts.restarting_percent = '0.9           % enable restarting only in the part of the evolution';
-defopts.base_kl            = '0.15          % whats kl?';
+defopts.base_kl            = '0.15          % ';
+defopts.show_plots         = 'false         % show interactive progress plots';
 
 % ---------------------- Handling Input Parameters ----------------------
 
@@ -49,7 +50,7 @@ end
 
 % Reset the random number generator to a different state each restart
 rand('state', sum(100*clock));
-close();
+
 
 % load parameters from problem
 if strfind(problem, 'WFG')
@@ -103,6 +104,12 @@ restarting_percent = myeval(opts.restarting_percent);
 n_precursors = myeval(opts.n_precursors);
 
 num_offspring = myeval(opts.num_offspring);
+
+show_plots = myeval(opts.show_plots);
+
+if show_plots == true
+    close();
+end
 
 % initial population - every row an individual
 pop = generate_random_population(pop_size, num_vars, rng_min, rng_max);   % dist uniforme
@@ -217,25 +224,25 @@ while count_eval < max_eval
     end
 
     %% -- plots for assessing diversity
-    % if mod(iteration,1) == 0 || iteration == 1 || restart_iteration == iteration
-    %    if num_vars == 2
-    %        subplot(2,1,1);
-    %        hold off;
-    %        plot(pop(:,1),pop(:,2), 'bo');
-    %        hold on;
-    %        plot(offspring(:,1),offspring(:,2), 'r.');
-    %        plot(rebel_pop(:,1), rebel_pop(:,2), 'g*');
-    %        title(strcat('Search space - parents blue; offspring red - t=', num2str(iteration)));
-    %        subplot(2,1,2);
-    %    end
-    %    hold off;
-    %    plot(pop_obj(:,1), pop_obj(:,2), 'bo');
-    %    hold on;
-    %    plot(offspring_obj(:,1), offspring_obj(:,2), 'r.');
-    %    plot(rebel_pop_obj(:,1), rebel_pop_obj(:,2), 'g*');
-    %    title(strcat('Objectives -  parents blue; offspring red - t=', num2str(iteration)));
-    %    drawnow;
-    % end
+    if show_plots == true && (mod(iteration,1) == 0 || iteration == 1 || restart_iteration == iteration)
+       if num_vars == 2
+           subplot(2,1,1);
+           hold off;
+           plot(pop(:,1),pop(:,2), 'bo');
+           hold on;
+           plot(offspring(:,1),offspring(:,2), 'r.');
+           plot(rebel_pop(:,1), rebel_pop(:,2), 'g*');
+           title(strcat('Search space - parents blue; offspring red - t=', num2str(iteration)));
+           subplot(2,1,2);
+       end
+       hold off;
+       plot(pop_obj(:,1), pop_obj(:,2), 'bo');
+       hold on;
+       plot(offspring_obj(:,1), offspring_obj(:,2), 'r.');
+       plot(rebel_pop_obj(:,1), rebel_pop_obj(:,2), 'g*');
+       title(strcat('Objectives -  parents blue; offspring red - t=', num2str(iteration)));
+       drawnow;
+    end
 
     total_pop = [pop; offspring];
     total_pop_obj = [pop_obj; offspring_obj];
@@ -375,7 +382,7 @@ if marg == 1
     lowerx = min(pop);
     y = norminv(u1,0,1);
     for k= 1:num_offspring
-        offspring(k,:) = y(k,:).*(upperx(k)-lowerx(k))+lowerx(k);
+        offspring(k,:) = y(k,:).*(upperx-lowerx)+lowerx;
     end
 else
     % Empirical Marginal Distributions
